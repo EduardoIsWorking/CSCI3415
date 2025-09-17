@@ -1,51 +1,57 @@
-/* front.c - a lexical analyzer system for simple
-arithmetic expressions */
+/* front.c - a lexical analyzer system for simple arithmetic expressions */
 #include <stdio.h>
 #include <ctype.h>
-/* Global declarations */
-/* Variables */
+
+/* Character classes */
+#define LETTER 0
+#define DIGIT  1
+#define UNKNOWN 99
+
+/* Token codes */
+#define INT_LIT     10
+#define IDENT       11
+#define ASSIGN_OP   20
+#define ADD_OP      21
+#define SUB_OP      22
+#define MULT_OP     23
+#define DIV_OP      24
+#define LEFT_PAREN  25
+#define RIGHT_PAREN 26
+
+/* Globals */
 int charClass;
-char lexeme [100];
-char nextChar;
+char lexeme[100];
+int  nextChar;       /* must be int to hold EOF */
 int lexLen;
 int token;
 int nextToken;
-FILE *in_fp, *fopen();
-/* Function declarations */
-void addChar();
-void getChar();
-void getNonBlank();
-int lex();
-/* Character classes */
-#define LETTER 0
-#define DIGIT 1
-#define UNKNOWN 99
-/* Token codes */
-#define INT_LIT 10
-#define IDENT 11
-#define ASSIGN_OP 20
-#define ADD_OP 21
-#define SUB_OP 22
-#define MULT_OP 23
-#define DIV_OP 24
-#define LEFT_PAREN 25
-#define RIGHT_PAREN 26
+FILE *in_fp;
+
+/* Prototypes (modern style) */
+void addChar(void);
+void getChar(void);
+void getNonBlank(void);
+int  lex(void);
+int  lookup(char ch);
+
 /******************************************************/
 /* main driver */
-main() {
-/* Open the input data file and process its contents */
-    if ((in_fp = fopen("front.in", "r")) == NULL)
+int main(void) {
+    /* Open the input data file and process its contents */
+    if ((in_fp = fopen("front.in", "r")) == NULL) {
         printf("ERROR - cannot open front.in \n");
-    else {
+        return 1;
+    } else {
         getChar();
         do {
             lex();
         } while (nextToken != EOF);
     }
+    return 0;
 }
+
 /*****************************************************/
-/* lookup - a function to lookup operators and parentheses
-and return the token */
+/* lookup - a function to lookup operators and parentheses and return the token */
 int lookup(char ch) {
     switch (ch) {
         case '(':
@@ -76,49 +82,51 @@ int lookup(char ch) {
             addChar();
             nextToken = EOF;
             break;
-        }
+    }
     return nextToken;
 }
+
 /*****************************************************/
-/* addChar - a function to add nextChar to lexeme */
-void addChar() {
+/* addChar - add nextChar to lexeme */
+void addChar(void) {
     if (lexLen <= 98) {
-        lexeme[lexLen++] = nextChar;
+        lexeme[lexLen++] = (char)nextChar;
         lexeme[lexLen] = 0;
-    }
-    else
+    } else {
         printf("Error - lexeme is too long \n");
+    }
 }
+
 /*****************************************************/
-/* getChar - a function to get the next character of
-input and determine its character class */
-void getChar() {
-    if ((nextChar = getc(in_fp)) != EOF) {
+/* getChar - get next character and set its class */
+void getChar(void) {
+    nextChar = getc(in_fp);
+    if (nextChar != EOF) {
         if (isalpha(nextChar))
             charClass = LETTER;
         else if (isdigit(nextChar))
             charClass = DIGIT;
-            else charClass = UNKNOWN;
-    }
-    else
+        else
+            charClass = UNKNOWN;
+    } else {
         charClass = EOF;
+    }
 }
+
 /*****************************************************/
-/* getNonBlank - a function to call getChar until it
-returns a non-whitespace character */
-void getNonBlank() {
+/* getNonBlank - skip whitespace */
+void getNonBlank(void) {
     while (isspace(nextChar))
         getChar();
 }
-/*
-*****************************************************/
-/* lex - a simple lexical analyzer for arithmetic
-expressions */
-int lex() {
+
+/*****************************************************/
+/* lex - a simple lexical analyzer for arithmetic expressions */
+int lex(void) {
     lexLen = 0;
     getNonBlank();
     switch (charClass) {
-/* Parse identifiers */
+        /* identifiers */
         case LETTER:
             addChar();
             getChar();
@@ -126,9 +134,10 @@ int lex() {
                 addChar();
                 getChar();
             }
-        nextToken = IDENT;
-        break;
-/* Parse integer literals */
+            nextToken = IDENT;
+            break;
+
+        /* integer literals */
         case DIGIT:
             addChar();
             getChar();
@@ -136,24 +145,22 @@ int lex() {
                 addChar();
                 getChar();
             }
-        nextToken = INT_LIT;
-        break;
-/* Parentheses and operators */
+            nextToken = INT_LIT;
+            break;
+
+        /* parentheses and operators */
         case UNKNOWN:
-            lookup(nextChar);
+            lookup((char)nextChar);
             getChar();
             break;
-/* EOF */
+
+        /* EOF */
         case EOF:
             nextToken = EOF;
-            lexeme[0] = 'E';
-            lexeme[1] = 'O';
-            lexeme[2] = 'F';
-            lexeme[3] = 0;
+            lexeme[0] = 'E'; lexeme[1] = 'O'; lexeme[2] = 'F'; lexeme[3] = 0;
             break;
     }
-/* End of switch */
-    printf("Next token is: %d, Next lexeme is %s\n",
-        nextToken, lexeme);
+
+    printf("Next token is: %d, Next lexeme is %s\n", nextToken, lexeme);
     return nextToken;
-} /* End of function lex */
+}
